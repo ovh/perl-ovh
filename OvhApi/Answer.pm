@@ -3,13 +3,14 @@ package OvhApi::Answer;
 use strict;
 use warnings;
 
-our $VERSION = 1.0;
+use constant VERSION => '1.1';
 
 
 use overload (
     bool        => \&isSuccess,
     '!'         => \&isFailure,
     fallback    => 0,
+    '""'        => \&toString,
 );
 
 use Scalar::Util    'blessed';
@@ -56,6 +57,13 @@ sub new
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Instance methods
 
+sub status
+{
+    my ($self) = @_;
+
+    return $self->{'response'}->code;
+}
+
 sub isSuccess
 {
     my ($self) = @_;
@@ -80,6 +88,11 @@ sub content
         carp 'Fetching content from a failed OvhApi::Response Object';
         return;
     }
+    if ($self->status eq HTTP::Status::HTTP_NO_CONTENT())
+    {
+        # void answer
+        return undef;
+    }
 
     return $self->_generateContent;
 }
@@ -88,7 +101,36 @@ sub error
 {
     my ($self) = @_;
 
-    return $self ? '' : $self->_generateContent->{'message'};
+    if ($self->isFailure)
+    {
+        my $content = $self->_generateContent();
+        if ($content)
+        {
+            return $content->{'message'};
+        }
+        else
+        {
+            return 'JSON decoding error';
+        }
+    }
+    else
+    {
+        return '';
+    }
+}
+
+sub toString
+{
+    my ($self) = @_;
+
+    if ($self->isSuccess)
+    {
+        return $self->content;
+    }
+    else
+    {
+        return $self->error;
+    }
 }
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -167,6 +209,12 @@ It takes no parameter.
 =head2 error
 
 Returns the error message of the answer, or an empty string if the answer is a success.
+
+It takes no parameter.
+
+=head2 status
+
+Returns the HTTP status code
 
 It takes no parameter.
 
