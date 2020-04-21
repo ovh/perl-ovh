@@ -3,8 +3,7 @@ package OvhApi;
 use strict;
 use warnings;
 
-our $VERSION = 1.0;
-
+use constant VERSION => '1.1';
 
 use OvhApi::Answer;
 
@@ -12,8 +11,7 @@ use Carp            qw{ carp croak };
 use List::Util      'first';
 use LWP::UserAgent  ();
 use JSON            ();
-use Digest::SHA1    'sha1_hex';
-
+use Digest::SHA     'sha1_hex';
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -22,6 +20,11 @@ use Digest::SHA1    'sha1_hex';
 use constant {
     OVH_API_EU => 'https://eu.api.ovh.com/1.0',
     OVH_API_CA => 'https://ca.api.ovh.com/1.0',
+    OVH_API_US => 'https://api.us.ovhcloud.com/1.0',
+    SOYOUSTART_API_EU => 'https://eu.api.soyoustart.com/1.0',
+    SOYOUSTART_API_CA => 'https://ca.api.soyoustart.com/1.0',
+    KIMSUFI_API_EU => 'https://eu.api.kimsufi.com/1.0',
+    KIMSUFI_API_CA => 'https://ca.api.kimsufi.com/1.0',
 };
 
 # End - Class constants
@@ -47,7 +50,7 @@ my @accessRuleMethods = qw{ GET POST PUT DELETE };
 
 sub new
 {
-    my @keys = qw{ applicationKey applicationSecret consumerKey };
+    my @keys = qw{ applicationKey applicationSecret consumerKey timeout };
 
     my ($class, %params) = @_;
 
@@ -57,7 +60,8 @@ sub new
         croak "Missing parameter: @missingParameters";
     }
 
-    unless ($params{'type'} and grep { $params{'type'} eq $_ } (OVH_API_EU, OVH_API_CA))
+    # default values
+    unless ($params{'type'} and grep { $params{'type'} eq $_ } (OVH_API_EU, OVH_API_CA, OVH_API_US, SOYOUSTART_API_EU, SOYOUSTART_API_CA, KIMSUFI_API_EU, KIMSUFI_API_CA))
     {
         carp 'Missing or invalid type parameter: defaulting to OVH_API_EU';
     }
@@ -67,6 +71,11 @@ sub new
     };
 
     @$self{@keys} = @params{@keys};
+
+    if ($params{'timeout'})
+    {
+        $class->setRequestTimeout(timeout => $params{'timeout'});
+    }
 
     bless $self, $class;
 }
@@ -109,7 +118,7 @@ sub rawCall
     my $body = '';
     my %content;
 
-    if ($method ne 'get' and $method ne 'delete')
+    if (defined $params{'body'} and $method ne 'get' and $method ne 'delete')
     {
         $body = $Json->encode($params{'body'});
 
@@ -134,7 +143,7 @@ sub rawCall
         )));
     }
 
-    $httpHeaders{'X-Ovh-Application'}   = $self->{'applicationKey'},
+    $httpHeaders{'X-Ovh-Application'}   = $self->{'applicationKey'};
 
     return OvhApi::Answer->new(response => $UserAgent->$method($url, %httpHeaders, %content));
 }
@@ -247,11 +256,31 @@ Its parameters are:
 
 =head2 OVH_API_EU
 
-L<Constant|constant> that points to the root URL of OVH european API.
+L<Constant|constant> that points to the root URL of OVH European API.
 
 =head2 OVH_API_CA
 
-L<Constant|constant> that points to the root URL of OVH canadian API.
+L<Constant|constant> that points to the root URL of OVH Canadian API.
+
+=head2 OVH_API_US
+
+L<Constant|constant> that points to the root URL of OVHcloud US API.
+
+=head2 SOYOUSTART_API_EU
+
+L<Constant|constant> that points to the root URL of SoYouStart European API.
+
+=head2 SOYOUSTART_API_CA
+
+L<Constant|constant> that points to the root URL of SoYouStart Canadian API.
+
+=head2 KIMSUFI_API_EU
+
+L<Constant|constant> that points to the root URL of Kimsufi European API.
+
+=head2 KIMSUFI_API_CA
+
+L<Constant|constant> that points to the root URL of Kimsufi Canadian API.
 
 =head2 setRequestTimeout
 
@@ -332,20 +361,30 @@ The C<accessRules> parameter is an ARRAY of HASHes. Each hash contains these key
 
 =head3 Example
 
-    my $Api = OvhApi->new(type => OvhApi::OVH_API_EU, applicationKey => $AK, applicationSecret => $AS, consumerKey => $CK);
+    # Giving full access to all services under an account
+
+    my $Api = OvhApi->new(type => OvhApi::OVH_API_EU, applicationKey => $AK, applicationSecret => $AS);
     my $Answer = $Api->requestCredentials(accessRules => [ { method => 'ALL', path => '/*' }]);
 
     if ($Answer)
     {
         my ($consumerKey, $validationUrl) = @{ $Answer->content}{qw{ consumerKey validationUrl }};
 
-        # $consumerKey contains the newly created  Consumer Key
+        # $consumerKey contains the newly created Consumer Key
         # $validationUrl contains a link to OVH website in order to login an OVH account and link it to the credential
     }
 
+    # Another case would be giving access to only one object under a path, for example to allow rebooting only a defined server:
+
+    my $Answer = $Api->requestCredentials(accessRules => [ { method => 'POST', path => '/dedicated/server/ns123456789.ovh.net/reboot' }]);
+
+    # It is also possible to allow rebooting any server under the account:
+
+    my $Answer = $Api->requestCredentials(accessRules => [ { method => 'POST', path => '/dedicated/server/*/reboot' }]);
+
 =head1 SEE ALSO
 
-The guts of module are using: C<LWP::UserAgent>, C<JSON>, C<Digest::SHA1>.
+The guts of module are using: C<LWP::UserAgent>, C<JSON>, C<Digest::SHA>.
 
 =head1 COPYRIGHT
 
