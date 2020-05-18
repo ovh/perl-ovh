@@ -3,6 +3,28 @@ perl-ovh
 
 Perl wrapper around OVH's APIs. Handles all the hard work including credential creation and requests signing.
 
+```perl
+#!/usr/bin/env perl
+use strict;
+use warnings;
+
+use OvhApi;
+
+my $ApiOvh = OvhApi->new(
+    timeout             => 10,
+);
+
+my $identity = $ApiOvh->get(path => "/me");
+if (!$identity)
+{
+    printf("Failed to retrieve identity: %s\n", $identity);
+    return 0;
+}
+$identity = $identity->content();
+
+printf("Welcome %s\n", $identity->{'firstname'});
+```
+
 ## Register your app
 
 OVH's API, like most modern APIs is designed to authenticate both an application and
@@ -41,6 +63,144 @@ typically want to do this when writing automation scripts for a single projects.
 
 If this case, you may want to directly go to https://eu.api.ovh.com/createToken/ to generate
 the 3 tokens at once.
+
+## Configuration
+
+The straightforward way to use OVH's API keys is to embed them directly in the
+application code. While this is very convenient, it lacks of elegance and
+flexibility. You might also need to add your scripts into some source control systems,
+and adding credentials into source control is not the best way to manage your credentials.
+
+`perl-ovh` will look for a configuration file of the form:
+
+```ini
+[default]
+; general configuration: default endpoint
+endpoint=ovh-eu
+
+[ovh-eu]
+; configuration specific to 'ovh-eu' endpoint
+application_key=my_app_key
+application_secret=my_application_secret
+consumer_key=my_consumer_key
+```
+
+Depending on the API you want to use, you may set the ``endpoint`` to:
+
+* ``ovh-eu`` for OVH Europe API
+* ``ovh-us`` for OVH US API
+* ``ovh-ca`` for OVH Canada API
+* ``soyoustart-eu`` for So you Start Europe API
+* ``soyoustart-ca`` for So you Start Canada API
+* ``kimsufi-eu`` for Kimsufi Europe API
+* ``kimsufi-ca`` for Kimsufi Canada API
+
+The client will successively attempt to locate this configuration file in
+
+1. Current working directory: ``./ovh.conf``
+2. Current user's home directory ``~/.ovh.conf``
+3. System wide configuration ``/etc/ovh.conf``
+
+This lookup mechanism makes it easy to overload credentials for a specific
+project or user.
+
+
+## Usage
+
+```perl
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use 5.010;
+
+use OvhApi;
+
+sub main
+{
+    my $ApiOvh = OvhApi->new(
+        timeout             => 10,
+    );
+
+    if (not $ApiOvh->{consumerKey})
+    {
+        my $validation = $ApiOvh->requestCredentials(
+            accessRules => [
+                {
+                    method  => "ALL",
+                    path    => "/hosting/web*",
+                },
+                {
+                    method  => "GET",
+                    path    => "/me",
+                },
+            ]
+        );
+        if (not $validation)
+        {
+            printf("Failed to request new credentials: %s\n", $validation);
+            return 0;
+        }
+
+        $validation = $validation->content();
+        printf("Please visit %s to authenticate,\nand press Enter to continue...", $validation->{'validationUrl'});
+        <STDIN> // die "Abort.\n";
+        $ApiOvh->{consumerKey} = $validation->{'consumerKey'};
+        printf("Your 'consumerKey' is '%s', you can save it to use it next time you want to use this script!\n", $ApiOvh->{'consumerKey'});
+    }
+
+    my $identity = $ApiOvh->get(path => "/me");
+    if (!$identity)
+    {
+        printf("Failed to retrieve identity: %s\n", $identity);
+        return 0;
+    }
+    $identity = $identity->content();
+
+    printf("Welcome %s\n", $identity->{'firstname'});
+
+    print("Listing all web hosting products...\n");
+    my $hostingWebList = $ApiOvh->get(
+        path => '/hosting/web',
+    );
+    if (not $hostingWebList)
+    {
+        printf("Error: %s\n", $hostingWebList);
+        return 0;
+    }
+    $hostingWebList = $hostingWebList->content;
+
+    if (not @$hostingWebList)
+    {
+        print("You don't have any web hosting on your account!\n");
+        return 0;
+    }
+
+    print("Available web hosting:\n");
+    foreach my $hostingWeb (@$hostingWebList)
+    {
+        printf("- %s\n", $hostingWeb);
+    }
+
+    printf("\nRenaming %s\nEnter a new name: ", $hostingWebList->[0]);
+    my $newName = <STDIN> // die "Abort.\n";
+    chomp $newName;
+
+    my $renamingOperation = $ApiOvh->put(
+        path => "/hosting/web/".$hostingWebList->[0],
+        body => {
+            displayName => $newName,
+        },
+    );
+    if (not $renamingOperation)
+    {
+        printf("Error while renaming: %s\n", $renamingOperation);
+        return 0;
+    }
+    print("Renamed successfully!\n");
+}
+
+main();
+```
 
 
 ## Hacking
