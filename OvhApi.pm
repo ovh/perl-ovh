@@ -39,6 +39,23 @@ my $UserAgent = LWP::UserAgent->new(timeout => 10);
 my $Json      = JSON->new->allow_nonref;
 
 my @accessRuleMethods = qw{ GET POST PUT DELETE };
+my %configKey = (
+    'ovh-eu' => OVH_API_EU,
+    'ovh-ca' => OVH_API_CA,
+    'ovh-us' => OVH_API_US,
+    'soyoustart-eu' => SOYOUSTART_API_EU,
+    'soyoustart-ca' => SOYOUSTART_API_CA,
+    'kimsufi-eu' => KIMSUFI_API_EU,
+    'kimsufi-ca' => KIMSUFI_API_CA,
+);
+
+my %reverseConfigKey = reverse %configKey;
+
+my %configKeySnakeToCamel = (
+    'applicationKey'    => 'application_key',
+    'applicationSecret' => 'application_secret',
+    'consumerKey'       => 'consumer_key',
+);
 
 # End - Class variables
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -54,20 +71,61 @@ sub new
 
     my ($class, %params) = @_;
 
+    my $configuration = retrieveConfiguration();
+
+    if ($params{'type'})
+    {
+        if (not exists $reverseConfigKey{$params{'type'}})
+        {
+            carp 'Invalid type parameter: defaulting to OVH_API_EU';
+            $params{'type'} = OVH_API_EU;
+        }
+    }
+
+    if ($configuration)
+    {
+        my $endpoint;
+        if ($params{'type'})
+        {
+            $endpoint = $reverseConfigKey{$params{'type'}};
+        }
+        elsif(exists $configuration->{default} and exists $configuration->{default}->{endpoint})
+        {
+            $endpoint = $configuration->{default}->{endpoint};
+        }
+        if (not $endpoint)
+        {
+            carp 'Missing default endpoint in ovh.conf: defaulting to ovh-eu';
+            $endpoint = 'ovh-eu';
+        }
+        if (not exists $configKey{$endpoint})
+        {
+            local $" = ', ';
+            my @legalEndpoints = keys %configKey;
+            croak "Invalid endpoint value: $endpoint, valid values are @legalEndpoints";
+        }
+
+        $params{'type'} = $configKey{$endpoint};
+        if ($configuration->{$endpoint})
+        {
+            foreach my $key (qw( applicationKey applicationSecret consumerKey ))
+            {
+                if (not $params{$key} and $configuration->{$endpoint}->{$configKeySnakeToCamel{$key}})
+                {
+                    $params{$key} = $configuration->{$endpoint}->{$configKeySnakeToCamel{$key}};
+                }
+            }
+        }
+    }
+
     if (my @missingParameters = grep { not $params{$_} } qw{ applicationKey applicationSecret })
     {
         local $" = ', ';
         croak "Missing parameter: @missingParameters";
     }
 
-    # default values
-    unless ($params{'type'} and grep { $params{'type'} eq $_ } (OVH_API_EU, OVH_API_CA, OVH_API_US, SOYOUSTART_API_EU, SOYOUSTART_API_CA, KIMSUFI_API_EU, KIMSUFI_API_CA))
-    {
-        carp 'Missing or invalid type parameter: defaulting to OVH_API_EU';
-    }
-
     my $self = {
-        _type   => ($params{'type'} or OVH_API_EU),
+        _type   => $params{'type'},
     };
 
     @$self{@keys} = @params{@keys};
@@ -98,6 +156,36 @@ sub setRequestTimeout
     }
 }
 
+sub retrieveConfiguration
+{
+    my $fh;
+    foreach my $filepath ("$ENV{PWD}/ovh.conf", "$ENV{HOME}/.ovh.conf", '/etc/ovh.conf')
+    {
+        open($fh, '<', $filepath) and last;
+        undef $fh;
+    }
+    $fh or return undef;
+
+    my (%hash, $section, $key, $value);
+    while (<$fh>)
+    {
+        chomp;
+        if (/^\s*\[([\w-]+)\].*/)
+        {
+            $section = $1;
+            next;
+        }
+        if (/^\s*([\w_]+)=([\w_-]+)\s*(;.*)?$/)
+        {
+            $key = $1;
+            $value = $2;
+            $hash{$section}{$key} = $value;
+        }
+    }
+    close($fh);
+    return \%hash;
+}
+
 # End - Class methods
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -110,6 +198,16 @@ sub rawCall
 {
     my ($self, %params) = @_;
 
+    if (not $params{'path'})
+    {
+        carp "Missing parameter: path";
+        return OvhApi::Answer::->new(response => HTTP::Response->new( 500, "Missing parameter: path", [], '{"message":"Missing parameter: path"}'));
+    }
+    if (not $params{'method'})
+    {
+        carp "Missing parameter: method";
+        return OvhApi::Answer::->new(response => HTTP::Response->new( 500, "Missing parameter: method", [], '{"message":"Missing parameter: method"}'));
+    }
     my $method = lc $params{'method'};
     my $url    = $self->{'_type'} . (substr($params{'path'}, 0, 1) eq '/' ? '' : '/') . $params{'path'};
 
@@ -130,6 +228,12 @@ sub rawCall
     {
         my $now    = $self->_timeDelta + time;
 
+        if (not $self->{'consumerKey'})
+        {
+            carp "Performed an authentified call without providing a valid consumerKey";
+            return OvhApi::Answer::->new(response => HTTP::Response->new( 500, "Performed an authentified call without providing a valid consumerKey", [], '{"message":"Performed an authentified call without providing a valid consumerKey"}'));
+        }
+
         $httpHeaders{'X-Ovh-Consumer'}      = $self->{'consumerKey'},
         $httpHeaders{'X-Ovh-Timestamp'}     = $now,
         $httpHeaders{'X-Ovh-Signature'}     = '$1$' . sha1_hex(join('+', (
@@ -145,7 +249,7 @@ sub rawCall
 
     $httpHeaders{'X-Ovh-Application'}   = $self->{'applicationKey'};
 
-    return OvhApi::Answer->new(response => $UserAgent->$method($url, %httpHeaders, %content));
+    return OvhApi::Answer::->new(response => $UserAgent->$method($url, %httpHeaders, %content));
 }
 
 sub requestCredentials

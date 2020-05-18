@@ -129,11 +129,12 @@ sub toString
     }
     else
     {
-        return $self->error;
+        my $queryID = $self->{'response'}->header('X-OVH-QUERYID') || '';
+        return sprintf("%s (Request-ID: %s)", $self->error, $queryID);
     }
 }
 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # private part
 
 sub _generateContent
@@ -147,7 +148,7 @@ sub _generateContent
         return { message => 'Internal LWP::UserAgent error : ' . $self->{'response'}->content };
     }
 
-    eval { $content = $Json->decode($self->{'response'}->content); 1; } or do { 
+    eval { $content = $Json->decode($self->{'response'}->content); 1; } or do {
         carp 'Failed to parse JSON content from the answer: ', $self->{'response'}->content;
         return;
     };
