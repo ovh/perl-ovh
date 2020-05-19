@@ -3,6 +3,8 @@ perl-ovh
 
 Perl wrapper around OVH's APIs. Handles all the hard work including credential creation and requests signing.
 
+## Synopsis
+
 ```perl
 #!/usr/bin/env perl
 use strict;
@@ -23,6 +25,15 @@ if (!$identity)
 $identity = $identity->content();
 
 printf("Welcome %s\n", $identity->{'firstname'});
+```
+
+## Installation
+
+```
+perl Makefile.PL
+make
+make test
+make install
 ```
 
 ## Register your app
