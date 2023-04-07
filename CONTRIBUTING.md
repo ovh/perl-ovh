@@ -93,4 +93,3 @@ then you just add a line saying
 
 using your real name (sorry, no pseudonyms or anonymous contributions.)
 ```
-

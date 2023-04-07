@@ -3,7 +3,7 @@ package OvhApi;
 use strict;
 use warnings;
 
-use constant VERSION => '1.1';
+use constant VERSION => '1.2';
 
 use OvhApi::Answer;
 
@@ -142,7 +142,7 @@ sub setRequestTimeout
 {
     my ($class, %params) = @_;
 
-    if ($params{'timeout'} =~ /^\d+$/)
+    if ($params{'timeout'} =~ /^[0-9]+\z/)
     {
         $UserAgent->timeout($params{'timeout'});
     }
@@ -209,7 +209,7 @@ sub rawCall
         return OvhApi::Answer::->new(response => HTTP::Response->new( 500, "Missing parameter: method", [], '{"message":"Missing parameter: method"}'));
     }
     my $method = lc $params{'method'};
-    my $url    = $self->{'_type'} . (substr($params{'path'}, 0, 1) eq '/' ? '' : '/') . $params{'path'};
+    my $url    = _getTarget($self->{'_type'}, $params{'path'});
 
     my %httpHeaders;
 
@@ -315,11 +315,21 @@ sub _timeDelta
     return $self->{'_timeDelta'};
 }
 
+sub _getTarget
+{
+    my ($endpoint, $path) = @_;
+
+    $path = "/$path" if $path !~ m#^/#;
+    $endpoint =~ s#/1\.0\z## if $path =~ m#^/v[12]#;
+
+    return $endpoint . $path;
+}
+
 # End - Instance methods
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
-return 42;
+1;
 
 
 __END__
@@ -492,10 +502,9 @@ The guts of module are using: C<LWP::UserAgent>, C<JSON>, C<Digest::SHA>.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2013-2020, OVH SAS.
+Copyright (c) 2013-2023, OVH SAS.
 All rights reserved.
 
 This library is distributed under the terms of BSD 3-Clause License, see C<LICENSE>.
 
 =cut
-

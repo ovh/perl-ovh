@@ -1,7 +1,7 @@
 perl-ovh
 ========
 
-Perl wrapper around OVH's APIs. Handles all the hard work including credential creation and requests signing.
+Perl wrapper around OVHcloud's APIs. Handles all the hard work including credential creation and requests signing.
 
 ## Synopsis
 
@@ -38,7 +38,7 @@ make install
 
 ## Register your app
 
-OVH's API, like most modern APIs is designed to authenticate both an application and
+OVHcloud's API, like most modern APIs, is designed to authenticate both an application and
 a user, without requiring the user to provide a password. Your application will be
 identified by its "application secret" and "application key" tokens.
 
@@ -48,7 +48,7 @@ user to authenticate on a specific URL. Once authenticated, you'll have a valid
 
 The user may choose the validity period of its authorization. The default period is
 24h. He may also revoke an authorization at any time. Hence, your application should
-be prepared to receive 403 HTTP errors and prompt the user to re-authenticated.
+be prepared to receive 403 HTTP errors and prompt the user to re-authenticate.
 
 This process is detailed in the following section. Alternatively, you may only need
 to build an application for a single user. In this case you may generate all
@@ -61,23 +61,22 @@ You'll get an application key and an application secret. To use the API you'll n
 
 The consumer key has two types of restriction:
 
-* path: eg. only the ```GET``` method on ```/me```
+* path: eg. only the `GET` method on `/me`
 * time: eg. expire in 1 day
-
 
 Then, get a consumer key.
 
 ### Use the API for a single user
 
-Alternatively, you may generate all creadentials at once, including the consumer key. You will
-typically want to do this when writing automation scripts for a single projects.
+Alternatively, you may generate all credentials at once, including the consumer key. You will
+typically want to do this when writing automation scripts for a single project.
 
 If this case, you may want to directly go to https://eu.api.ovh.com/createToken/ to generate
 the 3 tokens at once.
 
 ## Configuration
 
-The straightforward way to use OVH's API keys is to embed them directly in the
+The straightforward way to use OVHcloud's API keys is to embed them directly in the
 application code. While this is very convenient, it lacks of elegance and
 flexibility. You might also need to add your scripts into some source control systems,
 and adding credentials into source control is not the best way to manage your credentials.
@@ -98,9 +97,9 @@ consumer_key=my_consumer_key
 
 Depending on the API you want to use, you may set the ``endpoint`` to:
 
-* ``ovh-eu`` for OVH Europe API
-* ``ovh-us`` for OVH US API
-* ``ovh-ca`` for OVH Canada API
+* ``ovh-eu`` for OVHcloud Europe API
+* ``ovh-us`` for OVHcloud US API
+* ``ovh-ca`` for OVHcloud Canada API
 * ``soyoustart-eu`` for So you Start Europe API
 * ``soyoustart-ca`` for So you Start Canada API
 * ``kimsufi-eu`` for Kimsufi Europe API
@@ -114,7 +113,6 @@ The client will successively attempt to locate this configuration file in
 
 This lookup mechanism makes it easy to overload credentials for a specific
 project or user.
-
 
 ## Usage
 
@@ -178,8 +176,8 @@ sub main
         printf("Error: %s\n", $hostingWebList);
         return 0;
     }
-    $hostingWebList = $hostingWebList->content;
 
+    $hostingWebList = $hostingWebList->content;
     if (not @$hostingWebList)
     {
         print("You don't have any web hosting on your account!\n");
@@ -218,13 +216,13 @@ main();
 
 This wrapper uses standard Perl tools, so you should feel at home with it.
 
-You've developed a new cool feature ? Fixed an annoying bug ? We'd be happy
-to hear from you ! See [CONTRIBUTING.md](https://github.com/ovh/perl-ovh/blob/master/CONTRIBUTING.md)
-for more informations
+You've developed a new cool feature? Fixed an annoying bug? We'd be happy
+to hear from you! See [CONTRIBUTING.md](https://github.com/ovh/perl-ovh/blob/master/CONTRIBUTING.md)
+for more information.
 
 ## Supported APIs
 
-### OVH Europe
+### OVHcloud Europe
 
 - **Documentation**: https://eu.api.ovh.com/
 - **Community support**: api-subscribe@ml.ovh.net
@@ -232,14 +230,14 @@ for more informations
 - **Create application credentials**: https://eu.api.ovh.com/createApp/
 - **Create script credentials** (all keys at once): https://eu.api.ovh.com/createToken/
 
-### OVH US
+### OVHcloud US
 
 - **Documentation**: https://api.us.ovhcloud.com/
 - **Console**: https://api.us.ovhcloud.com/console/
 - **Create application credentials**: https://api.us.ovhcloud.com/createApp/
 - **Create script credentials** (all keys at once): https://api.us.ovhcloud.com/createToken/
 
-### OVH Canada
+### OVHcloud Canada
 
 - **Documentation**: https://ca.api.ovh.com/
 - **Community support**: api-subscribe@ml.ovh.net
@@ -282,4 +280,3 @@ for more informations
 ## License
 
 3-Clause BSD
-
