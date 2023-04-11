@@ -5,7 +5,7 @@ use utf8;
 # the contents of the Makefile that is written.
 WriteMakefile(
     NAME           => 'OvhApi',
-    VERSION        => '1.1',
+    VERSION        => '1.2',
     PREREQ_PM      => {
         'LWP::UserAgent' => '6.44',
         'JSON'           => '2.97',

@@ -3,7 +3,7 @@ package OvhApi::Answer;
 use strict;
 use warnings;
 
-use constant VERSION => '1.1';
+use constant VERSION => '1.2';
 
 
 use overload (
@@ -160,7 +160,7 @@ sub _generateContent
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
-return 42;
+1;
 
 __END__
 
@@ -239,7 +239,7 @@ The guts of module are using: C<JSON>.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2013-2020, OVH SAS.
+Copyright (c) 2013-2023, OVH SAS.
 All rights reserved.
 
 This library is distributed under the terms of BSD 3-Clause License, see C<LICENSE>.
