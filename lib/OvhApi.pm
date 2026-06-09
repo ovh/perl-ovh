@@ -18,8 +18,8 @@ use Digest::SHA     'sha1_hex';
 # Class constants
 
 use constant {
-    OVH_API_EU => 'https://eu.api.ovh.com/1.0',
-    OVH_API_CA => 'https://ca.api.ovh.com/1.0',
+    OVH_API_EU => 'https://api.eu.ovhcloud.com/1.0',
+    OVH_API_CA => 'https://api.ca.ovhcloud.com/1.0',
     OVH_API_US => 'https://api.us.ovhcloud.com/1.0',
     SOYOUSTART_API_EU => 'https://eu.api.soyoustart.com/1.0',
     SOYOUSTART_API_CA => 'https://ca.api.soyoustart.com/1.0',
@@ -502,7 +502,7 @@ The guts of module are using: C<LWP::UserAgent>, C<JSON>, C<Digest::SHA>.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2013-2023, OVH SAS.
+Copyright (c) 2013-2026, OVH SAS.
 All rights reserved.
 
 This library is distributed under the terms of BSD 3-Clause License, see C<LICENSE>.
