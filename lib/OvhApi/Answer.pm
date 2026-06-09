@@ -239,7 +239,7 @@ The guts of module are using: C<JSON>.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2013-2023, OVH SAS.
+Copyright (c) 2013-2026, OVH SAS.
 All rights reserved.
 
 This library is distributed under the terms of BSD 3-Clause License, see C<LICENSE>.
